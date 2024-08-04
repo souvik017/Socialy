@@ -39,7 +39,7 @@ const login =  async (req, res) => {
     if (!user) return res.status(400).send("No user found");
     const match = await comparePassword(password, user.password);
     if (!match) return res.status(400).send("Invalid password");
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ _id: user.id }, process.env.JWT_SECRET, {
       expiresIn: "10d",
     });
     user.password = undefined;
@@ -50,5 +50,18 @@ const login =  async (req, res) => {
   }
 };
 
+const allUser = async (req, res) => {
+  const keyword = req.query.search
+  ? {
+  $or: [
+  { name: { $regex: req.query.search, $options: "i" } },
+  ],
+  }
+  : {};
+  const users = await User.find(keyword).find({ _id: { $ne: req.user?._id } });
+  res.send(users); 
 
-  export { login , newUser };
+};
+
+
+  export { login , newUser, allUser };

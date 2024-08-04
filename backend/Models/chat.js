@@ -1,5 +1,5 @@
 import mongoose, { Types } from "mongoose";
-const { Schema, Types } = mongoose;
+const { Schema } = mongoose;
 
 
 const chatSchema = new Schema(
@@ -10,13 +10,17 @@ const chatSchema = new Schema(
         required: true,
       },
       groupChat: {
-        type: boolean,
+        type: Boolean,
         default: false,
       },
-      creator: {
+      groupAdmin: {
         type:  Types.ObjectId,
          ref: "User" ,
       },
+      latestMessage: {
+        type: Types.ObjectId,
+        ref: "Message",
+        },
       members: [
         { type: Types.ObjectId,
          ref: "User" }
@@ -29,3 +33,4 @@ const chatSchema = new Schema(
       })
 
       export default mongoose.model("Chat", chatSchema);
+      

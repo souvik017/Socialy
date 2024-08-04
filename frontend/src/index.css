@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.bgImage {
+    background-image: url("./assets/socialyBackground.png");
+}
+
+
+::-webkit-scrollbar {
+    display: none;
+}

@@ -1,13 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import hero2 from "../../assets/hero2.png"
 import socialyBackground from "../../assets/socialyBackground.png"
+import axios from "axios"
+import { useNavigate } from "react-router-dom";
 const Login = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {email, password}
+       
+      const response = await axios.post(`${API_URL}/user/login`,data, {
+       });
+      if (response.status === 200) {
+      console.log(response);
+       setEmail('')
+       setPassword('')
+       navigate("/")
+       localStorage.setItem('token', response.data.token);
+       localStorage.setItem('Id', response.data.user._id);
+      } else {
+        console.log("Unexpected response status:", response.status);
+      }
+    } catch (error) {
+      console.log("Error in login" , error)
+    }
+  }
+
+  useEffect(() => {
+    const authToken = localStorage.getItem('token');
+    console.log(authToken);
+
+    if (authToken) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   return (
-    <div className="bg-gray-800 h-full sm:h-screen  ">
+    <div className="bg-[#212121]  h-full sm:h-screen  ">
     <div className="lg:h-full py-8 px-[10%] pt-[5%] flex flex-col sm:flex-row ">
 
          <div className="w-full sm:w-[60%] h-full lg:h-full md:h-[50%] ">
@@ -115,6 +151,7 @@ const Login = () => {
             <div>
               <button
                 type="submit"
+                onClick={handleSubmit}
                 className="flex w-full justify-center rounded-md bg-blue-400 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
               >
                 Sign in
@@ -124,7 +161,7 @@ const Login = () => {
           <div className="flex justify-center gap-2 my-4">
            {/* eslint-disable-next-line react/no-unescaped-entities */}
             <p className="text-gray-100">Didn't have an account?</p>
-            <a href="/signup" className="text-gray-100 hover:underline ">
+            <a href="/register" className="text-gray-100 hover:underline ">
               Signup
             </a>
           </div>

@@ -27,13 +27,17 @@ export default {
           "100%": {
             borderColor: "transparent"
           }  
-        }
+        },
+        rotate360: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
-        typing: "typing 4s steps(29) infinite alternate, blink 0s 1 0s"
-      }
+        typing: "typing 4s steps(29) infinite alternate, blink 0s 1 0s",
+        rotate360: 'rotate360 0.5s linear infinite',
+      },
     },
   },
-
   plugins: [],
 }
