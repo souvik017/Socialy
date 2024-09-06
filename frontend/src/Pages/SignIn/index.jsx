@@ -45,7 +45,7 @@ const SignIn = () => {
 
 
   return (
-    <div className="bg-[#212121] h-full sm:h-screen ">
+    <div className="bg-[#212121] h-screen sm:h-screen ">
     <div className="lg:h-full py-8 px-[10%] pt-[5%] flex flex-col sm:flex-row ">
 
          <div className="w-full sm:w-[60%] h-full lg:h-full md:h-[50%] ">

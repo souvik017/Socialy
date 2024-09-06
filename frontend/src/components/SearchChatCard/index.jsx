@@ -12,36 +12,44 @@ const SearchChatCard = ({searchQuery , setSearchOpen}) => {
 
     const API_URL = import.meta.env.VITE_API_URL;
 
+
     useEffect(() => {
-        // Define the async function inside the useEffect
-        const fetchData = async () => {
-          const token = localStorage.getItem('token'); // Get the token from localStorage
     
-          if (!token) {
-            setError(new Error('Token not found'));
-            setLoading(false);
-            return;
-          }
-    
-          try {
-            const response = await axios.get(`${API_URL}/user/alluser?search=${searchQuery}`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            console.log('Fetched data:', response.data); // Debug: Log fetched data
-            setData(response.data);
-            setLoading(false);
-          } catch (error) {
-            console.error('Error fetching data:', error); // Debug: Log error
-            setError(error);
-            setLoading(false);
-          }
-        };
-    
-        // Call the async function
+      const fetchData = async () => {
+        const token = localStorage.getItem('token'); 
+  
+        if (!token) {
+          setError(new Error('Token not found'));
+          setLoading(false);
+          return;
+        }
+  
+        try {
+          const response = await axios.get(`${API_URL}/user/alluser?search=${searchQuery}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          console.log('Fetched data:', response.data);
+          setData(response.data);
+          setLoading(false);
+        } catch (error) {
+          console.error('Error fetching data:', error); 
+          setError(error);
+          setLoading(false);
+        }
+      };
+  
+      const debounceDelay = 1000; 
+      const timer = setTimeout(() => {
         fetchData();
-      }, [searchQuery]);
+      }, debounceDelay);
+  
+      return () => {
+        clearTimeout(timer);
+      };
+    }, [searchQuery]);
+
 
       const accessChat = async (userId) => {
         const token = localStorage.getItem('token');

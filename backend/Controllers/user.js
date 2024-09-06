@@ -63,5 +63,22 @@ const allUser = async (req, res) => {
 
 };
 
+const findUser = async (req, res) => {
+  try {
+    const userId = req.params.userId; // Assuming userId is passed as a route parameter
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error finding user by ID:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-  export { login , newUser, allUser };
+
+
+  export { login , newUser, allUser,findUser };

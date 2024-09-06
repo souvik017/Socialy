@@ -11,10 +11,14 @@ const ENDPOINT = "http://localhost:3000";
 var socket;
 
 
-const ChatCard = ({setAllChat , setreciverData}) => {
+const ChatCard = ({setAllChat , setreciverData, handleShowChat }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+
+
+  // setLatestMessage(lastMessage);
 
   const API_URL = import.meta.env.VITE_API_URL;
   const UserId = localStorage.getItem('Id');
@@ -23,8 +27,6 @@ const ChatCard = ({setAllChat , setreciverData}) => {
     socket = io(ENDPOINT);
     socket.emit("setup", UserId)
   });
-  
- 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,7 +55,7 @@ const ChatCard = ({setAllChat , setreciverData}) => {
     };
 
     fetchData();
-  }, [API_URL]);
+  },[]);
 
   const showChat = async (chatId , chat) => {
     const token = localStorage.getItem('token');
@@ -91,11 +93,10 @@ const getSender = (Id , members)=>{
  return members[0]._id === Id ? members[1].name : members[0].name;
 }
 
-
  
   
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
       {data.length === 0 ? (
         <div className="text-white flex justify-center text-xl mt-4">
           No user found
@@ -103,10 +104,13 @@ const getSender = (Id , members)=>{
       ) : (
         data.map(item => (
           <div
-            key={item._id}
-            className="w-full h-[10%] shadow-md flex gap-4 items-center px-4 py-2 m-1 cursor-pointer"
-            onClick={() => showChat(item._id , item)}
-          >
+  key={item._id}
+  className="w-full h-[10%] shadow-md flex gap-4 items-center px-4 py-2 m-1 cursor-pointer"
+  onClick={() => {
+    showChat(item._id, item);
+    handleShowChat();
+  }}
+>
             <div className="text-white text-4xl">
               <p><CgProfile /></p>
             </div>
@@ -128,6 +132,8 @@ const getSender = (Id , members)=>{
 }
 ChatCard.propTypes = {
   setAllChat: PropTypes.any,
-  setreciverData: PropTypes.any}
+  setreciverData: PropTypes.any,
+  handleShowChat:PropTypes.func,
+}
 
 export default ChatCard;

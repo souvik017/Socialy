@@ -3,23 +3,30 @@ import PropTypes from "prop-types";
 import Sender from "../Sender/index.jsx";
 import { CgProfile } from "react-icons/cg";
 import { BsThreeDotsVertical } from "react-icons/bs";
+import { FaPaperPlane } from "react-icons/fa";
+import { FaArrowLeft } from "react-icons/fa";
 import ScrollableFeed from 'react-scrollable-feed';
 import InputEmoji from "react-input-emoji";
 import { IoMdAttach } from "react-icons/io";
 import axios from 'axios';
 import io from "socket.io-client";
+import Loading from '../Loading/index.jsx';
+
 // import socketIOClient from "socket.io-client";
 
 
 const ENDPOINT = "http://localhost:3000";
 let socket, selectedChatCompare;
 
-const ChatPlace = ({ reciverData }) => {
+const ChatPlace = ({ reciverData , setShowChatPlace }) => {
   const [content, setContent] = useState("");
   const [socketConnected, setsocketConnected] = useState(false)
   const [messages, setMessages] = useState([]);
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
 
   const API_URL = import.meta.env.VITE_API_URL;
   const UserId = localStorage.getItem('Id');
@@ -28,8 +35,9 @@ const ChatPlace = ({ reciverData }) => {
 
  
 
-  // console.log("mssg",messages);
-
+  console.log("mssg",messages);
+  console.log(isTyping);
+ 
 
   const handleOnEnter = async () => {
      
@@ -46,12 +54,11 @@ const ChatPlace = ({ reciverData }) => {
       socket.emit("new message", msg);
       setContent("");
       setMessages((prev)=>[...prev, msg]);
-
     } catch (error) {
       console.error('Error sending message:', error);
+    } 
     }
-  };
-
+ 
   const getSender = (Id, members) => {
     return members[0]._id === Id ? members[1].name : members[0].name;
   };
@@ -100,6 +107,7 @@ const ChatPlace = ({ reciverData }) => {
             },
           });
           setMessages(data);
+          setLoading(false)
         } catch (error) {
           console.error('Error fetching messages:', error);
         }
@@ -132,6 +140,17 @@ const ChatPlace = ({ reciverData }) => {
     }, 1000);
   };
 
+  const handleBack = () => {
+    setShowChatPlace(false)
+  }
+
+  // if (loading) {
+  //   return <div className='flex justify-center'><Loading /></div>;
+  // }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
 
   return (
     <div className="bgImage h-full w-full">
@@ -145,6 +164,10 @@ const ChatPlace = ({ reciverData }) => {
         <div className="w-full h-full">
           <div className="w-full h-[8%] bg-[#212121] flex justify-between items-center px-8">
             <div className="flex flex-row items-center gap-2">
+              <div onClick={handleBack} className='text-white px-2 text-2xl'>
+                <p><FaArrowLeft /></p>
+              </div>
+              <div className='flex gap-2 items-center'>
               <div className="text-white text-4xl">
                 <CgProfile />
               </div>
@@ -152,7 +175,8 @@ const ChatPlace = ({ reciverData }) => {
                 <p className="text-white text-xl font-semibold">
                   {getSender(UserId, reciverData.members)}
                 </p>
-                {isTyping ? (<div className='text-white text-sm flex justify-center'>typing...</div>) : null}
+                {isTyping ? (<div className='text-white text-md font-bold flex justify-center'>typing...</div>) : null}
+              </div>
               </div>
             </div>
             <div className="text-white font-bold text-2xl cursor-pointer">
@@ -203,6 +227,7 @@ const ChatPlace = ({ reciverData }) => {
 ChatPlace.propTypes = {
   chat: PropTypes.any,
   reciverData: PropTypes.any,
+  setShowChatPlace: PropTypes.any,
 };
 
 export default ChatPlace;

@@ -43,7 +43,7 @@ mongoose
   });
   
   io.on("connection", socket => {
-    console.log("connected to socket.io");
+    // console.log("connected to socket.io");
   
    
     socket.on("setup", (Id) => {
