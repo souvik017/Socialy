@@ -15,7 +15,6 @@ const Login = () => {
     e.preventDefault()
     try {
       const data = {email, password}
-       
       const response = await axios.post(`${API_URL}/user/login`,data, {
        });
       if (response.status === 200) {
