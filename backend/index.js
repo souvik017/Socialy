@@ -80,8 +80,9 @@ mongoose
   
   });
   
- 
- 
+  app.get("/", () => {
+    console.log(`Server is running at port: ${port}`);
+  });
   server.listen(port, () => {
     console.log(`Server is running at port: ${port}`);
   });
