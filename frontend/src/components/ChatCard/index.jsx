@@ -7,7 +7,7 @@ import axios from "axios";
 import io from "socket.io-client"
 
 
-const ENDPOINT = "http://localhost:3000";
+const ENDPOINT = import.meta.env.VITE_API_URL;
 var socket;
 
 
@@ -23,10 +23,32 @@ const ChatCard = ({setAllChat , setreciverData, handleShowChat }) => {
   const API_URL = import.meta.env.VITE_API_URL;
   const UserId = localStorage.getItem('Id');
 
+  // useEffect(() => {
+  //   socket = io(ENDPOINT);
+  //   socket.emit("setup", UserId)
+  // });
+
   useEffect(() => {
-    socket = io(ENDPOINT);
-    socket.emit("setup", UserId)
+  if (!UserId) return; // Don't connect if no user ID
+  socket = io(ENDPOINT, {
+    transports: ["websocket", "polling"], // ensures WebSocket first
   });
+
+  socket.emit("setup", UserId);
+
+  socket.on("connect", () => {
+    console.log("Socket connected:", socket.id);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("Socket connection error:", err);
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [UserId]); // run once when UserId is available
+
 
   useEffect(() => {
     const fetchData = async () => {

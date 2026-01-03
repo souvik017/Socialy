@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import Sender from "../Sender/index.jsx";
 import { CgProfile } from "react-icons/cg";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { FaPaperPlane } from "react-icons/fa";
 import { FaArrowLeft } from "react-icons/fa";
 import ScrollableFeed from 'react-scrollable-feed';
 import InputEmoji from "react-input-emoji";
@@ -11,223 +10,225 @@ import { IoMdAttach } from "react-icons/io";
 import axios from 'axios';
 import io from "socket.io-client";
 import Loading from '../Loading/index.jsx';
+import { motion, AnimatePresence } from "framer-motion";
 
-// import socketIOClient from "socket.io-client";
 
+const ENDPOINT = import.meta.env.VITE_API_URL;
+let socket;
 
-const ENDPOINT = "http://localhost:3000";
-let socket, selectedChatCompare;
-
-const ChatPlace = ({ reciverData , setShowChatPlace }) => {
+const ChatPlace = ({ reciverData, setShowChatPlace }) => {
   const [content, setContent] = useState("");
-  const [socketConnected, setsocketConnected] = useState(false)
   const [messages, setMessages] = useState([]);
-  const [typing, setTyping] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [typing, setTyping] = useState(false); // your typing state
+  const [isTyping, setIsTyping] = useState(false); // other user's typing
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-
-  const API_URL = import.meta.env.VITE_API_URL;
-  const UserId = localStorage.getItem('Id');
-  const chatId = reciverData?._id;
   const typingTimeoutRef = useRef(null);
 
- 
+  const UserId = localStorage.getItem('Id');
+  const chatId = reciverData?._id;
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  console.log("mssg",messages);
-  console.log(isTyping);
- 
-
-  const handleOnEnter = async () => {
-     
-    const token = localStorage.getItem('token');
-    try {
-      socket.emit("stop typing", chatId)
-      const response = await axios.post(`${API_URL}/message/sendmessage`, { content, chatId }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const msg = response.data
-      console.log("msg",msg)
-      socket.emit("new message", msg);
-      setContent("");
-      setMessages((prev)=>[...prev, msg]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } 
-    }
- 
-  const getSender = (Id, members) => {
-    return members[0]._id === Id ? members[1].name : members[0].name;
-  };
-
+  // -------------------- SOCKET.IO SETUP --------------------
   useEffect(() => {
+    if (!UserId) return;
+
     socket = io(ENDPOINT);
     socket.emit("setup", UserId);
-    socket.on("connected", () =>{
-      console.log("Socket connected")
-      setsocketConnected(true)
-    });
-  
-    socket.on("typing", () => {
-      setIsTyping(true);
+
+    socket.on("connected", () => console.log("Socket connected"));
+
+    // Typing indicator from others
+    socket.on("typing", ({ chatId: typingChatId, userId }) => {
+      if (typingChatId === chatId && userId !== UserId) setIsTyping(true);
     });
 
-    socket.on("stop typing", () => {
-      setIsTyping(false);
-  });
+    socket.on("stop typing", ({ chatId: stopTypingChatId, userId }) => {
+      if (stopTypingChatId === chatId && userId !== UserId) setIsTyping(false);
+    });
 
-    socket.on("message received", (newMessageReceived) => {
-      console.log(newMessageReceived)
-        setMessages((prev)=>[...prev, newMessageReceived]);
-        console.log(messages);
-        console.log("message added")
-      
+    // New message received
+    socket.on("message received", (newMessage) => {
+      if (newMessage.chat._id === chatId) {
+        setMessages(prev => [...prev, newMessage]);
+      } else {
+        // Optional: show notifications for other chats
+        console.log("New message for another chat:", newMessage.chat._id);
+      }
     });
 
     return () => {
       socket.off("connected");
-      socket.off("message received"); 
-      socket.off('typing');
-      socket.off('stopTyping');
+      socket.off("typing");
+      socket.off("stop typing");
+      socket.off("message received");
     };
-  },[]);
+  }, [UserId, chatId]);
 
+  // Join the chat room when chatId changes
   useEffect(() => {
-    if (chatId) {
-      selectedChatCompare = reciverData;
-      const fetchMessages = async () => {
-        const token = localStorage.getItem('token');
-        try {
-          const { data } = await axios.get(`${API_URL}/message/${chatId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          setMessages(data);
-          setLoading(false)
-        } catch (error) {
-          console.error('Error fetching messages:', error);
-        }
-      };
-      fetchMessages();
-    }
-  }, [chatId, API_URL, reciverData]);
+    if (chatId) socket.emit("join Chat", chatId);
+  }, [chatId]);
 
+  // -------------------- FETCH MESSAGES --------------------
+  useEffect(() => {
+    if (!chatId) return;
 
+    const fetchMessages = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const { data } = await axios.get(`${API_URL}/message/${chatId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setMessages(data);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setError(err);
+      }
+    };
+
+    fetchMessages();
+  }, [chatId, API_URL]);
+
+  // -------------------- TYPING HANDLER --------------------
   const typingHandler = (text) => {
     setContent(text);
-  
-    if (!socketConnected) return;
-  
-    
-    if(!typing){
+    if (!socket || !chatId) return;
+
+    if (!typing) {
       setTyping(true);
-      socket.emit("typing", chatId);
+      socket.emit("typing", { chatId, userId: UserId });
     }
-    // Clear previous timeout if exists
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-  
-    // Set new timeout to emit 'stop typing' event
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("stop typing", chatId);
+      socket.emit("stop typing", { chatId, userId: UserId });
       setTyping(false);
-      setIsTyping(false);
-    }, 1000);
+    }, 1000); // 1s idle
   };
 
-  const handleBack = () => {
-    setShowChatPlace(false)
-  }
+  // -------------------- SEND MESSAGE --------------------
+const handleOnEnter = async () => {
+  if (!chatId) return;
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  if (!content.trim()) return; // prevent empty messages
 
-  // if (loading) {
-  //   return <div className='flex justify-center'><Loading /></div>;
-  // }
-
-  if (error) {
-    return <div>Error: {error.message}</div>;
+  try {
+    socket.emit("stop typing", { chatId, userId: UserId });
+    const { data } = await axios.post(
+      `${API_URL}/message/sendmessage`,
+      { content, chatId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    socket.emit("new message", data);
+    setMessages(prev => [...prev, data]);
+    setContent("");
+  } catch (err) {
+    console.error(err);
   }
+};
+
+
+  const getSender = (Id, members) => members[0]._id === Id ? members[1].name : members[0].name;
+
+  const handleBack = () => setShowChatPlace(false);
+
+  if (loading) return <Loading />;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
-    <div className="bgImage h-full w-full">
-      {reciverData === undefined ? (
-        <div className="w-full h-full">
-          <div className="w-full h-full text-white text-2xl flex justify-center m-auto items-center">
-            <p>Send Your Message in socialyyyyyy and get connected</p>
+    <div className="bgImage h-screen w-full flex flex-col">
+
+      {/* HEADER */}
+      <div className="w-full h-[8%] bg-[#212121] flex justify-between items-center px-4">
+        <div className="flex items-center gap-2">
+          <div onClick={handleBack} className="text-white text-2xl cursor-pointer"><FaArrowLeft /></div>
+          <CgProfile className="text-white text-4xl" />
+          <div>
+            <p className="text-white text-xl font-semibold">{getSender(UserId, reciverData.members)}</p>
+            
           </div>
         </div>
-      ) : (
-        <div className="w-full h-full">
-          <div className="w-full h-[8%] bg-[#212121] flex justify-between items-center px-8">
-            <div className="flex flex-row items-center gap-2">
-              <div onClick={handleBack} className='text-white px-2 text-2xl'>
-                <p><FaArrowLeft /></p>
-              </div>
-              <div className='flex gap-2 items-center'>
-              <div className="text-white text-4xl">
-                <CgProfile />
-              </div>
-              <div className='flex gap-2 items-center'>
-                <p className="text-white text-xl font-semibold">
-                  {getSender(UserId, reciverData.members)}
-                </p>
-                {isTyping ? (<div className='text-white text-md font-bold flex justify-center'>typing...</div>) : null}
-              </div>
-              </div>
-            </div>
-            <div className="text-white font-bold text-2xl cursor-pointer">
-              <BsThreeDotsVertical />
-            </div>
-          </div>
-          <div className="h-[84%] flex w-full px-4">
-            {messages.length > 0 ? (
-              <div className='w-full h-full'>
-              <ScrollableFeed className="w-full h-full">
-                {messages.map((item) => (
-                  <div key={item._id} className="w-full">
-                    <Sender item={item}/>
-                  </div>
-                ))}
+        <BsThreeDotsVertical className="text-white text-2xl cursor-pointer" />
+      </div>
 
-              </ScrollableFeed>
-              </div>
-            ) : (
-              <div className="w-full h-full text-white text-2xl flex justify-center m-auto items-center">
-                <p>Send Your Message and get connected</p>
-              </div>
+      {/* MESSAGES */}
+      <div className="flex flex-col flex-1 px-4 overflow-y-auto">
+        <ScrollableFeed >
+         <AnimatePresence>
+    {messages.map(msg => (
+      <motion.div
+        key={msg._id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+            <Sender key={msg._id} item={msg} />
+         </motion.div>
+    ))}
+  </AnimatePresence>
+        </ScrollableFeed>
+      
+         {isTyping && (
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  transition={{ duration: 0.3 }}
+  className="flex gap-1 ml-2 my-4 px-2 w-16 h-12 border-2 border-red-600 bg-[#272727] rounded-md justify-center items-center"
+>                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+           </motion.div>
             )}
+      </div>
 
-          </div>
+      {/* INPUT */}
+      <div className="input-fixed h-[8%] px-4 bg-[#212121] flex items-center gap-2"  style={{ height: "8%", minHeight: "50px" }} >
+        <IoMdAttach className="text-white text-2xl" />
+        <InputEmoji
+          value={content}
+          onChange={typingHandler}
+          cleanOnEnter
+          onEnter={handleOnEnter}
+          placeholder="Type a message"
+          height={20}
+        />
+      </div>
 
-          <div className="flex h-[8%] px-4 bg-[#212121] items-center">
-            <div className="text-2xl text-white font-semibold">
-              <IoMdAttach />
-            </div>
-            <div className="w-full items-center">
-               <InputEmoji
-                value={content}
-                onChange={typingHandler}
-                cleanOnEnter
-                onEnter={handleOnEnter}
-                placeholder="Type a message"
-                height={20}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* TYPING DOTS CSS */}
+      <style>
+        {`
+          .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite;
+          }
+          .typing-dot:nth-child(1) { animation-delay: 0s; }
+          .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+          .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+          @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+          }
+        `}
+      </style>
     </div>
   );
 };
 
 ChatPlace.propTypes = {
-  chat: PropTypes.any,
   reciverData: PropTypes.any,
-  setShowChatPlace: PropTypes.any,
+  setShowChatPlace: PropTypes.func,
 };
 
 export default ChatPlace;
