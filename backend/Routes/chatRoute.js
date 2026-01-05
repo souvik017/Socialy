@@ -1,14 +1,40 @@
 import express from "express";
 import { protect } from "../Middlewares/authMiddleware.js";
-import { accessChat, addToGroup, createGroupChat, fetchChats, removeFromGroup, renameGroup } from "../Controllers/chat.js";
+import {
+  accessChat,
+  fetchChats,
+  createGroupChat,
+  renameGroup,
+  addToGroup,
+  removeFromGroup,
+} from "../Controllers/chat.js";
 
-const app = express.Router();
+const router = express.Router();
 
-app.route("/").post(protect, accessChat);
-app.route("/").get(protect, fetchChats);
-app.route("/group").post(protect, createGroupChat);
-app.route("/rename").put (protect, renameGroup);
-app.route("/groupremove").put (protect, removeFromGroup);
-app.route("/groupadd").put(protect, addToGroup);
+/* =======================
+   CHAT
+======================= */
 
-export default app;
+// Create / Access one-to-one chat
+router.post("/", protect, accessChat);
+
+// Fetch all chats of logged-in user
+router.get("/", protect, fetchChats);
+
+/* =======================
+   GROUP CHAT
+======================= */
+
+// Create group
+router.post("/group", protect, createGroupChat);
+
+// Rename group
+router.put("/group/:chatId/rename", protect, renameGroup);
+
+// Add member
+router.put("/group/:chatId/add", protect, addToGroup);
+
+// Remove member
+router.put("/group/:chatId/remove", protect, removeFromGroup);
+
+export default router;

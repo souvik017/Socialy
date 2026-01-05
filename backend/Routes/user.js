@@ -1,12 +1,29 @@
 import express from "express";
-import { login, newUser , allUser, findUser } from "../Controllers/user.js";
+import {
+  login,
+  newUser,
+  allUser,
+  findUser,
+} from "../Controllers/user.js";
 import { protect } from "../Middlewares/authMiddleware.js";
 
-const app = express.Router();
+const router = express.Router();
 
-app.post('/login', login);
-app.post('/new', newUser);
-app.get('/allUser', protect , allUser);
-app.get('/:userId', protect , findUser);
+/* =======================
+   AUTH
+======================= */
 
-  export default app;
+router.post("/register", newUser);
+router.post("/login", login);
+
+/* =======================
+   USERS
+======================= */
+
+// Search users
+router.get("/", protect, allUser);
+
+// Get user by ID
+router.get("/:userId", protect, findUser);
+
+export default router;

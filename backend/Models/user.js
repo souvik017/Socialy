@@ -1,31 +1,30 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
-const userSchema = new Schema(
-    {
-      name: {
-        type: String,
-        trim: true,
-        required: true,
-      },
-      email: {
-        type: String,
-        trim: true,
-        required: true,
-        unique: true,
-      },
-      password: {
-        type: String,
-        required: true,
-        min: 6,
-        max: 64,
-      },
-      image:{
-        type: String,
-      }
-    },
-    {
-    timestamps:true
-    })
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  avatar: String,
 
-      export default mongoose.model("User", userSchema);
+  status: {
+    type: String,
+    enum: ["online", "offline", "away"],
+    default: "offline",
+  },
+
+  lastSeen: Date,
+
+  settings: {
+    readReceipts: { type: Boolean, default: true },
+    typingIndicators: { type: Boolean, default: true },
+    notifications: { type: Boolean, default: true },
+  },
+
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  }],
+
+}, { timestamps: true });
+
+export default mongoose.model('User', userSchema);
